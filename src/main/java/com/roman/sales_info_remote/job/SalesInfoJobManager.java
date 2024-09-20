@@ -15,7 +15,15 @@ import org.springframework.batch.item.file.builder.FlatFileItemReaderBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.ClassPathResource;
-import org.springframework.core.io.FileSystemResource;
+import org.springframework.expression.common.LiteralExpression;
+import org.springframework.integration.channel.DirectChannel;
+import org.springframework.integration.channel.QueueChannel;
+import org.springframework.integration.dsl.IntegrationFlow;
+import org.springframework.integration.handler.LoggingHandler;
+import org.springframework.integration.kafka.dsl.Kafka;
+import org.springframework.integration.kafka.outbound.KafkaProducerMessageHandler;
+import org.springframework.kafka.core.ConsumerFactory;
+import org.springframework.kafka.core.KafkaTemplate;
 
 @Configuration
 @EnableBatchIntegration
@@ -23,6 +31,7 @@ import org.springframework.core.io.FileSystemResource;
 public class SalesInfoJobManager {
 
     private final RemoteChunkingManagerStepBuilderFactory remoteChunkingManagerStepBuilderFactory;
+    private final KafkaTemplate<String, SalesInfoDTO> salesInfoDTOKafkaTemplate;
 
     @Bean
     public Job salesManagerJob(JobRepository jobRepository, Step salesInfoStepManager){
@@ -38,8 +47,13 @@ public class SalesInfoJobManager {
         return this.remoteChunkingManagerStepBuilderFactory.get("Reader-Manager-Step")
                 .<SalesInfoDTO, SalesInfoDTO>chunk(10)
                 .reader(salesInfoReader())
+                .outputChannel(outboundChannel())
+                .inputChannel(inboundChannel())
+                .allowStartIfComplete(Boolean.TRUE)
                 .build();
     }
+
+
 
     public FlatFileItemReader<SalesInfoDTO> salesInfoReader(){
         return new FlatFileItemReaderBuilder<SalesInfoDTO>()
@@ -51,5 +65,30 @@ public class SalesInfoJobManager {
                 .names("product", "seller", "sellerId", "price", "city", "category")
                 .targetType(SalesInfoDTO.class)
                 .build();
+    }
+
+    @Bean
+    public DirectChannel outboundChannel(){
+        return new DirectChannel();
+    }
+    @Bean
+    public QueueChannel inboundChannel(){
+        return new QueueChannel();
+    }
+    @Bean
+    public IntegrationFlow inboundFlow(ConsumerFactory<String, SalesInfoDTO> consumerFactory){
+        return IntegrationFlow.from(Kafka.messageDrivenChannelAdapter(consumerFactory, "sales-chunkReplies"))
+                .log(LoggingHandler.Level.WARN)
+                .channel(inboundChannel())
+                .get();
+    }
+    @Bean
+    public IntegrationFlow outboundFlow(){
+        var producerMessageHandler = new KafkaProducerMessageHandler<String, SalesInfoDTO>(salesInfoDTOKafkaTemplate);
+        producerMessageHandler.setTopicExpression(new LiteralExpression("sales-chunkRequests"));
+        return IntegrationFlow.from(outboundChannel())
+                .log(LoggingHandler.Level.WARN)
+                .handle(producerMessageHandler)
+                .get();
     }
 }
