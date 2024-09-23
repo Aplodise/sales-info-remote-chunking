@@ -1,4 +1,4 @@
-package com.roman.sales_info_remote.serializer;
+package com.roman.sales_info_remote.serializer.chunkRequest;
 
 import com.roman.sales_info_remote.dto.SalesInfoDTO;
 import org.apache.kafka.common.serialization.Serializer;

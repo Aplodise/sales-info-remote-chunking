@@ -1,4 +1,4 @@
-package com.roman.sales_info_remote.serializer;
+package com.roman.sales_info_remote.serializer.chunkResponse;
 
 import org.apache.kafka.common.serialization.Deserializer;
 import org.springframework.batch.integration.chunk.ChunkResponse;
