@@ -14,6 +14,7 @@ import org.springframework.batch.item.file.FlatFileItemReader;
 import org.springframework.batch.item.file.builder.FlatFileItemReaderBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.expression.common.LiteralExpression;
 import org.springframework.integration.channel.DirectChannel;
@@ -25,6 +26,7 @@ import org.springframework.integration.kafka.outbound.KafkaProducerMessageHandle
 import org.springframework.kafka.core.ConsumerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
 
+@Profile("manager")
 @Configuration
 @EnableBatchIntegration
 @RequiredArgsConstructor
@@ -41,7 +43,7 @@ public class SalesInfoJobManager {
                 .build();
     }
 
-    // TODO outbound channel for remote chunking
+
     @Bean
     public TaskletStep salesInfoStepManager(){
         return this.remoteChunkingManagerStepBuilderFactory.get("Reader-Manager-Step")
