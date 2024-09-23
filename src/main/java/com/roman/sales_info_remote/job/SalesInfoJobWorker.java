@@ -4,6 +4,7 @@ package com.roman.sales_info_remote.job;
 import com.roman.sales_info_remote.dto.SalesInfoDTO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.batch.core.configuration.annotation.EnableBatchProcessing;
 import org.springframework.batch.integration.chunk.RemoteChunkingWorkerBuilder;
 import org.springframework.batch.integration.config.annotation.EnableBatchIntegration;
 import org.springframework.context.annotation.Bean;
@@ -24,6 +25,7 @@ import org.springframework.kafka.core.KafkaTemplate;
 @EnableBatchIntegration
 @RequiredArgsConstructor
 @Slf4j
+@EnableBatchProcessing
 public class SalesInfoJobWorker {
 
     private final RemoteChunkingWorkerBuilder<SalesInfoDTO, SalesInfoDTO> remoteChunkingWorkerBuilder;
@@ -33,12 +35,12 @@ public class SalesInfoJobWorker {
     public IntegrationFlow salesWorker(){
         return this.remoteChunkingWorkerBuilder
                 .inputChannel(inboundChannel())
-                .outputChannel(outboundChannel())
                 .itemProcessor(salesInfo -> {
                     log.info("processing item: {}", salesInfo);
                     return salesInfo;
                 })
                 .itemWriter(items -> log.info("item writing: {}", items))
+                .outputChannel(outboundChannel())
                 .build();
     }
 
